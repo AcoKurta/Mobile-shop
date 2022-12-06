@@ -4,6 +4,9 @@
       class="mx-auto max-w-2xl py-16 px-4 sm:py-24 sm:px-6 lg:max-w-7xl lg:px-8"
     >
       <!-- Filters Brands -->
+      <h3 class="py-4 text-lg">
+        Products found: <strong>{{ this.productsList.length }}</strong>
+      </h3>
       <div class="filters-container w-full bg-white rounded p-2 flex">
         <div>
           <button
@@ -64,7 +67,7 @@
                         class="focus:opacity-100 checkbox"
                         :value="brand"
                         v-model="checkedBrands"
-                        @change="filterProducts(brand)"
+                        @change="filterProducts()"
                       />
                       <div
                         class="check-icon hidden bg-indigo-700 text-white rounded-sm"
@@ -163,7 +166,10 @@
                       <input
                         aria-labelledby="usa3"
                         type="checkbox"
-                        class="focus:opacity-100 checkbox opacity-0 absolute cursor-pointer w-full h-full"
+                        class="focus:opacity-100 checkbox"
+                        :value="fiveGOption.value"
+                        v-model="checkedFiveG"
+                        @change="filterProducts()"
                       />
                       <div
                         class="check-icon hidden bg-indigo-700 text-white rounded-sm"
@@ -262,7 +268,10 @@
                       <input
                         aria-labelledby="usa3"
                         type="checkbox"
-                        class="focus:opacity-100 checkbox opacity-0 absolute cursor-pointer w-full h-full"
+                        class="focus:opacity-100 checkbox"
+                        :value="eSimOption.value"
+                        v-model="checkedESim"
+                        @change="filterProducts()"
                       />
                       <div
                         class="check-icon hidden bg-indigo-700 text-white rounded-sm"
@@ -363,7 +372,10 @@
                       <input
                         aria-labelledby="usa3"
                         type="checkbox"
-                        class="focus:opacity-100 checkbox opacity-0 absolute cursor-pointer w-full h-full"
+                        class="focus:opacity-100 checkbox"
+                        :value="refurbishedOption.value"
+                        v-model="checkedRefurbished"
+                        @change="filterProducts()"
                       />
                       <div
                         class="check-icon hidden bg-indigo-700 text-white rounded-sm"
@@ -468,6 +480,9 @@ export default {
         { label: "No", value: false },
       ],
       checkedBrands: [],
+      checkedFiveG: [],
+      checkedESim: [],
+      checkedRefurbished: [],
     };
   },
   mounted() {
@@ -480,28 +495,52 @@ export default {
         .then((res) => {
           this.products = res.data.products;
           this.productsList = this.products;
-          console.log("this.productsList", this.productsList);
 
-          this.brands = Array.from(
-            new Set(
-              this.products.map((product) => {
-                return product.manufacturer;
-              })
-            )
-          );
+          this.fetchBrands();
         })
         .catch((err) => console.log("err", err));
     },
+    fetchBrands() {
+      this.brands = Array.from(
+        new Set(
+          this.products.map((product) => {
+            return product.manufacturer;
+          })
+        )
+      );
+    },
+
     filterProducts() {
-      if (this.checkedBrands.length) {
-        this.productsList = this.products.filter((product) =>
-          this.checkedBrands.includes(product.manufacturer)
+      let useConditions = (search) => (a) =>
+        Object.keys(search).every(
+          (k) =>
+            a[k] === search[k] ||
+            (Array.isArray(search[k]) && search[k].includes(a[k])) ||
+            (typeof search[k] === "object" &&
+              +search[k].min <= a[k] &&
+              a[k] <= +search[k].max) ||
+            (typeof search[k] === "function" && search[k](a[k]))
         );
+
+      let filters = {};
+
+      if (this.checkedBrands.length) {
+        filters.manufacturer = this.checkedBrands;
       }
 
-      if (!this.checkedBrands.length) {
-        this.productsList = this.products;
+      if (this.checkedFiveG.length) {
+        filters.has_5g = this.checkedFiveG;
       }
+
+      if (this.checkedESim.length) {
+        filters.has_esim = this.checkedESim;
+      }
+
+      if (this.checkedRefurbished.length) {
+        filters.refurbished = this.checkedRefurbished;
+      }
+
+      this.productsList = this.products.filter(useConditions(filters));
     },
   },
 };
