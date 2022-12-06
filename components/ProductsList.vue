@@ -111,6 +111,107 @@
 
         <div class="mx-2">
           <button
+            class="focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 focus:bg-gray-100 w-44 p-4 shadow rounded bg-white text-sm font-medium leading-none text-gray-800 flex items-center justify-between cursor-pointer"
+            @click="colorsShow = !colorsShow"
+          >
+            Colors
+            <div>
+              <div class="" v-if="!colorsShow" id="close">
+                <svg
+                  width="10"
+                  height="6"
+                  viewBox="0 0 10 6"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M5.00016 0.666664L9.66683 5.33333L0.333496 5.33333L5.00016 0.666664Z"
+                    fill="#1F2937"
+                  />
+                </svg>
+              </div>
+              <div v-if="colorsShow" id="open">
+                <svg
+                  width="10"
+                  height="6"
+                  viewBox="0 0 10 6"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M5.00016 5.33333L0.333496 0.666664H9.66683L5.00016 5.33333Z"
+                    fill="#1F2937"
+                  />
+                </svg>
+              </div>
+            </div>
+          </button>
+          <div
+            class="w-44 mt-2 p-4 bg-white shadow rounded absolute z-10"
+            v-if="colorsShow"
+            id="dropdown"
+          >
+            <div>
+              <div id="sublist3">
+                <div
+                  v-for="(color, colorIndex) in colors"
+                  :key="colorIndex"
+                  id="sublist3"
+                  class="flex items-center justify-between"
+                >
+                  <div class="flex items-center">
+                    <div
+                      class="bg-gray-100 dark:bg-gray-800 border rounded-sm border-gray-200 dark:border-gray-700 w-4 h-4 flex flex-shrink-0 justify-center items-center relative"
+                    >
+                      <input
+                        type="checkbox"
+                        class="focus:opacity-100 checkbox"
+                        :value="color"
+                        v-model="checkedColors"
+                        @change="filterProducts()"
+                      />
+                      <div
+                        class="check-icon hidden bg-indigo-700 text-white rounded-sm"
+                      >
+                        <svg
+                          class="icon icon-tabler icon-tabler-check"
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="12"
+                          height="12"
+                          viewBox="0 0 24 24"
+                          stroke-width="1.5"
+                          stroke="currentColor"
+                          fill="none"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <path stroke="none" d="M0 0h24v24H0z" />
+                          <path d="M5 12l5 5l10 -10" />
+                        </svg>
+                      </div>
+                    </div>
+                    <p
+                      id="usa3"
+                      tabindex="0"
+                      class="focus:outline-none text-sm leading-normal ml-2 text-gray-800 py-2"
+                    >
+                      {{ color }}
+                    </p>
+                  </div>
+                  <!-- <p
+                    tabindex="0"
+                    class="focus:outline-none w-8 text-xs leading-3 text-right text-indigo-700"
+                  >
+                    2,381
+                  </p> -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mx-2">
+          <button
             class="focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 focus:bg-gray-100 w-32 p-4 shadow rounded bg-white text-sm font-medium leading-none text-gray-800 flex items-center justify-between cursor-pointer"
             @click="fiveGShow = !fiveGShow"
           >
@@ -463,10 +564,12 @@ export default {
       products: [],
       productsList: [],
       brandsShow: false,
+      colorsShow: false,
       fiveGShow: false,
       eSimShow: false,
       refurbishedShow: false,
       brands: [],
+      colors: [],
       fiveGOptions: [
         { label: "Yes", value: true },
         { label: "No", value: false },
@@ -480,6 +583,7 @@ export default {
         { label: "No", value: false },
       ],
       checkedBrands: [],
+      checkedColors: [],
       checkedFiveG: [],
       checkedESim: [],
       checkedRefurbished: [],
@@ -497,6 +601,7 @@ export default {
           this.productsList = this.products;
 
           this.fetchBrands();
+          this.fetchColors();
         })
         .catch((err) => console.log("err", err));
     },
@@ -509,23 +614,31 @@ export default {
         )
       );
     },
-
+    fetchColors() {
+      this.colors = this.productsList
+        .reduce(function (prev, next) {
+          return [...prev, ...next.colors];
+        }, [])
+        .filter((v, i, a) => a.indexOf(v) === i);
+    },
     filterProducts() {
       let useConditions = (search) => (a) =>
-        Object.keys(search).every(
-          (k) =>
-            a[k] === search[k] ||
-            (Array.isArray(search[k]) && search[k].includes(a[k])) ||
-            (typeof search[k] === "object" &&
-              +search[k].min <= a[k] &&
-              a[k] <= +search[k].max) ||
-            (typeof search[k] === "function" && search[k](a[k]))
-        );
+        Object.keys(search).every((k) => {
+          if (Array.isArray(a[k])) {
+            return a[k].some((element) => search[k].includes(element));
+          } else {
+            return search[k].includes(a[k]);
+          }
+        });
 
       let filters = {};
 
       if (this.checkedBrands.length) {
         filters.manufacturer = this.checkedBrands;
+      }
+
+      if (this.checkedColors.length) {
+        filters.colors = this.checkedColors;
       }
 
       if (this.checkedFiveG.length) {
